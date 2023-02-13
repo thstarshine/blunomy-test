@@ -1,0 +1,50 @@
+name: GCP Infra
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+    paths:
+      - infra/*
+
+defaults:
+  run:
+    working-directory: infra
+
+jobs:
+  terraform:
+    name: Terraform
+    runs-on: ubuntu-latest
+    env:
+      GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+      TF_VAR_gcp_project: ${{ secrets.GCP_PROJECT }}
+      TF_VAR_gcp_region : ${{ secrets.GCP_REGION }}
+      TF_VAR_gcp_zone: ${{ secrets.GCP_ZONE }}
+      TF_VAR_gke_cluster_name: ${{ secrets.GKE_CLUSTER_NAME }}
+      TF_VAR_gke_node_pool_name: ${{ secrets.GKE_NODE_POOL_NAME }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v1
+      with:
+        credentials_json: ${{secrets.GOOGLE_CREDENTIALS}}
+
+    - name: Configure Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.3.2
+
+    - name: Init Terraform
+      run: terraform init
+
+    - name: Validate Terraform Changes
+      run: terraform validate
+
+    - name: Plan Terraform Changes
+      run: terraform plan -input=false
+
+    - name: Apply Terraform Changes
+      run: terraform apply -auto-approve
